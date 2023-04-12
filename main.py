@@ -112,6 +112,41 @@ def opinion_view(id):
         **context
     )
 
+# ALGORITHMS
+
+@app.route('/algorithms', methods=['GET'])
+def index_algorithms_view():
+    return render_template(
+        template_name_or_list='index_algorithms.html'
+    )
+
+
+@app.route('/algorithms/Bernstein_Vazirani_algorithm', methods=['GET'])
+def bernsteinvazirani_algorithm_view():
+    return render_template(
+        template_name_or_list='bernsteinvazirani_algorithm.html'
+    )
+
+
+@app.route('/algorithms/Grover_algorithm', methods=['GET'])
+def grover_algorithm_view():
+    return render_template(
+        template_name_or_list='grover_algorithm.html'
+    )
+
+
+@app.route('/algorithms/Quantum_Teleportation_algorithm', methods=['GET'])
+def quantumteleportation_algorithm_view():
+    return render_template(
+        template_name_or_list='quantumteleportation_algorithm.html'
+    )
+
+
+@app.route('/algorithms/Simon_algorithm', methods=['GET'])
+def simon_algorithm_view():
+    return render_template(
+        template_name_or_list='simon_algorithm.html'
+    )
 
 # Обработчики ошибок (ERRORS)
 
