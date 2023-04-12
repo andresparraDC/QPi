@@ -1,12 +1,13 @@
 from datetime import datetime
 from random import randrange
 
-from flask import Flask, render_template, redirect, url_for, abort
+from flask import Flask, render_template, redirect, url_for, abort, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, URLField
 from wtforms.validators import DataRequired, Length, Optional
-
+import webbrowser
+import os
 
 app = Flask(__name__)
 
@@ -58,6 +59,9 @@ class OpinionForm(FlaskForm):
     )
     submit = SubmitField('Добавить')
 
+
+class ButtonForm(FlaskForm):
+    submit = SubmitField('Watch')
 
 # FUNCTIONS
 
@@ -141,12 +145,19 @@ def quantumteleportation_algorithm_view():
         template_name_or_list='quantumteleportation_algorithm.html'
     )
 
-
-@app.route('/algorithms/Simon_algorithm', methods=['GET'])
+@app.route('/algorithms/Simon_algorithm', methods=['GET', 'POST'])
 def simon_algorithm_view():
-    return render_template(
-        template_name_or_list='simon_algorithm.html'
-    )
+    if request.method == 'POST':
+        workingdir = os.path.abspath(os.getcwd())
+        filepath = workingdir + '/static/files/'
+        if request.form['submit_button'] == 'Презентация':
+            path = filepath + 'SAPresentation.pdf'
+            webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Упражнения':
+            path = filepath + 'SAExercises.pdf'
+            webbrowser.open_new_tab(path)
+    return render_template("simon_algorithm.html")
+
 
 # Обработчики ошибок (ERRORS)
 
@@ -163,3 +174,7 @@ def internal_error(error):
  # THREAD MAIN
 if __name__ == '__main__':
     app.run()
+
+
+# PARA GUARDAR LOS RESULTADOS DE LAS PRUEBAS EN PDF
+# https://www.gitauharrison.com/articles/working-with-pdfs-in-flask
