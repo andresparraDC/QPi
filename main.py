@@ -9,6 +9,17 @@ from wtforms.validators import DataRequired, Length, Optional
 import webbrowser
 import os
 
+from qiskit import Aer, execute
+
+from qiskit_textbook.tools import simon_oracle
+
+from pauli_gate import add_x_gate, add_z_gate
+from hadamard_gate import add_hadamard_gate
+from cnot_gate import add_controlledX_gate
+from draw_circuit import draw
+from circuit import create_circuit
+from histogram import create_histogram
+
 app = Flask(__name__)
 
 # Подключается БД SQLite
@@ -125,15 +136,41 @@ def index_algorithms_view():
     )
 
 
-@app.route('/algorithms/Bernstein_Vazirani_algorithm', methods=['GET'])
+@app.route('/algorithms/Bernstein_Vazirani_algorithm', methods=['GET', 'POST'])
 def bernsteinvazirani_algorithm_view():
+    if request.method == 'POST':
+        workingdir = os.path.abspath(os.getcwd())
+        filepath = workingdir + '/static/files/berstein_vazirani_algorithm'
+        if request.form['submit_button'] == 'Презентация':
+            path = filepath + 'BVPresentation.pdf'
+            webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Упражнения':
+            path = filepath + 'BVExercises.pdf'
+            webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Calculate':
+            return redirect(
+                url_for('bernstein_vazirani_algorithm')
+            )
     return render_template(
         template_name_or_list='bernsteinvazirani_algorithm.html'
     )
 
 
-@app.route('/algorithms/Grover_algorithm', methods=['GET'])
+@app.route('/algorithms/Grover_algorithm', methods=['GET', 'POST'])
 def grover_algorithm_view():
+    if request.method == 'POST':
+        workingdir = os.path.abspath(os.getcwd())
+        filepath = workingdir + '/static/files/grover_algorithm'
+        if request.form['submit_button'] == 'Презентация':
+            path = filepath + 'GPresentation.pdf'
+            webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Упражнения':
+            path = filepath + 'GExercises.pdf'
+            webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Calculate':
+            return redirect(
+                url_for('grover_algorithm')
+            )
     return render_template(
         template_name_or_list='grover_algorithm.html'
     )
@@ -143,13 +180,17 @@ def grover_algorithm_view():
 def quantumteleportation_algorithm_view():
     if request.method == 'POST':
         workingdir = os.path.abspath(os.getcwd())
-        filepath = workingdir + '/static/files/'
+        filepath = workingdir + '/static/files/quantum_teleportation_algorithm'
         if request.form['submit_button'] == 'Презентация':
-            path = filepath + 'SAPresentation.pdf'
+            path = filepath + 'QTPresentation.pdf'
             webbrowser.open_new_tab(path)
         elif request.form['submit_button'] == 'Упражнения':
-            path = filepath + 'SAExercises.pdf'
+            path = filepath + 'QTExercises.pdf'
             webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Calculate':
+            return redirect(
+                url_for('quantum_teleportation_algorithm')
+            )
     return render_template(
         template_name_or_list="quantumteleportation_algorithm.html"
     )
@@ -158,16 +199,208 @@ def quantumteleportation_algorithm_view():
 def simon_algorithm_view():
     if request.method == 'POST':
         workingdir = os.path.abspath(os.getcwd())
-        filepath = workingdir + '/static/files/'
+        filepath = workingdir + '/static/files/simon_algorithm'
         if request.form['submit_button'] == 'Презентация':
             path = filepath + 'SAPresentation.pdf'
             webbrowser.open_new_tab(path)
         elif request.form['submit_button'] == 'Упражнения':
             path = filepath + 'SAExercises.pdf'
             webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Calculate':
+            return redirect(
+                url_for('simon_algorithm')
+            )
     return render_template(
         template_name_or_list="simon_algorithm.html"
     )
+
+
+@app.route('/algorithms/Bernstein_Vazirani_algorithm/cals', methods=['GET', 'POST'])
+def bernstein_vazirani_algorithm():
+    secret_number = '111000'
+    num_qubits = len(secret_number) + 1
+    num_bits = len(secret_number)
+    circuit, quantum_register = create_circuit(
+        num_qubits=num_qubits,
+        num_bits=num_bits
+    )
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=range(len(secret_number))
+    )
+    add_x_gate(
+        circuit=circuit,
+        qubit=len(secret_number)
+    )
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[len(secret_number)]
+    )
+    circuit.barrier()
+    for index, value in enumerate(reversed(secret_number)):
+        if value == '1':
+            add_controlledX_gate(
+                circuit=circuit,
+                quantum_register=quantum_register,
+                vector_register=[index, len(secret_number)]
+            )
+    circuit.barrier()
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=range(len(secret_number))
+    )
+    circuit.barrier()
+    circuit.measure(
+        range(len(secret_number)),
+        range(len(secret_number))
+    )
+    draw(
+        circuit=circuit,
+        filename="bernstein_vazirani_circuit"
+    )
+    simulator = Aer.get_backend('qasm_simulator')
+    result = execute(
+        circuit,
+        backend=simulator,
+        shots=1
+    ).result()
+    counts = result.get_counts()
+    create_histogram(
+        counts=counts,
+        name="bernstein_vazirani_algorithm_histogram"
+    )
+    print(counts)
+    return render_template(
+        template_name_or_list="bernsteinvazirani_algorithm.html"
+    )
+
+
+@app.route('/algorithms/Grover_algorithm/cals', methods=['GET', 'POST'])
+def grover_algorithm():
+    pass
+
+
+@app.route('/algorithms/Quantum_Teleportation_Algorithm/cals', methods=['GET', 'POST'])
+def quantum_teleportation_algorithm():
+    num_qubits = 3 # LABEL para la interfaz grafica
+    num_bits = 3
+    circuit, quantum_register = create_circuit(
+        num_qubits=num_qubits,
+        num_bits=num_bits
+    )
+    # Esto va en el label tambien
+    #add_x_gate(
+    #    circuit=circuit,
+    #    qubit=0
+    #)
+    circuit.barrier()
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[1]
+    )
+    add_controlledX_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[1, 2]
+    )
+    add_controlledX_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0, 1]
+    )
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0]
+    )
+    circuit.barrier()
+    circuit.measure(
+        [0,1],
+        [0,1]
+    )
+    circuit.barrier()
+    add_controlledX_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[1, 2]
+    )
+    add_z_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0, 2]
+    )
+    draw(
+        circuit=circuit,
+        filename="quantum_teleportation_circuit"
+    )
+    circuit.measure(2,2)
+    simulator = Aer.get_backend('qasm_simulator')
+    result = execute(
+        circuit,
+        backend=simulator,
+        shots=1024
+    ).result()
+    counts = result.get_counts()
+    create_histogram(
+        counts=counts,
+        name="quantum_teleportation_algorithm_histogram"
+    )
+    return render_template(
+        template_name_or_list="quantumteleportation_algorithm.html"
+    )
+
+
+@app.route('/algorithms/Simon_Algorithm/cals', methods=['GET', 'POST'])
+def simon_algorithm():
+    b = '110'
+    n = len(b)
+    circuit, quantum_register = create_circuit(
+        num_qubits=n*2,
+        num_bits=n
+    )
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=range(n)
+    )
+    circuit.barrier()
+    circuit = circuit.compose(simon_oracle(b))
+    circuit.barrier()
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=range(n)
+    )
+    circuit.measure(
+        range(n),
+        range(n)
+    )
+    draw(
+        circuit=circuit,
+        filename="simon_circuit"
+    )
+    aer_sim = Aer.get_backend('aer_simulator')
+    results = aer_sim.run(circuit).result()
+    counts = results.get_counts()
+    create_histogram(
+        counts=counts,
+        name="simon_algorithm_histogram"
+    )
+    for z in counts:
+        print('{}.{} = {} (mod 2)'.format(b, z, bdotz(b,z)))
+    return render_template(
+        template_name_or_list="simon_algorithm.html"
+    )
+
+def bdotz(b, z):
+    accum = 0
+    for i in range(len(b)):
+        accum += int(b[i]) * int(z[i])
+    return (accum % 2)
 
 
 # Обработчики ошибок (ERRORS)
@@ -189,3 +422,4 @@ if __name__ == '__main__':
 
 # PARA GUARDAR LOS RESULTADOS DE LAS PRUEBAS EN PDF
 # https://www.gitauharrison.com/articles/working-with-pdfs-in-flask
+
