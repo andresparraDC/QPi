@@ -139,10 +139,19 @@ def grover_algorithm_view():
     )
 
 
-@app.route('/algorithms/Quantum_Teleportation_algorithm', methods=['GET'])
+@app.route('/algorithms/Quantum_Teleportation_algorithm', methods=['GET', 'POST'])
 def quantumteleportation_algorithm_view():
+    if request.method == 'POST':
+        workingdir = os.path.abspath(os.getcwd())
+        filepath = workingdir + '/static/files/'
+        if request.form['submit_button'] == 'Презентация':
+            path = filepath + 'SAPresentation.pdf'
+            webbrowser.open_new_tab(path)
+        elif request.form['submit_button'] == 'Упражнения':
+            path = filepath + 'SAExercises.pdf'
+            webbrowser.open_new_tab(path)
     return render_template(
-        template_name_or_list='quantumteleportation_algorithm.html'
+        template_name_or_list="quantumteleportation_algorithm.html"
     )
 
 @app.route('/algorithms/Simon_algorithm', methods=['GET', 'POST'])
@@ -156,7 +165,9 @@ def simon_algorithm_view():
         elif request.form['submit_button'] == 'Упражнения':
             path = filepath + 'SAExercises.pdf'
             webbrowser.open_new_tab(path)
-    return render_template("simon_algorithm.html")
+    return render_template(
+        template_name_or_list="simon_algorithm.html"
+    )
 
 
 # Обработчики ошибок (ERRORS)
