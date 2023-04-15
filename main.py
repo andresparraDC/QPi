@@ -12,6 +12,7 @@ import os
 from qiskit import Aer, execute
 
 from qiskit_textbook.tools import simon_oracle
+from qiskit.visualization import array_to_latex
 
 from pauli_gate import add_x_gate, add_z_gate
 from hadamard_gate import add_hadamard_gate
@@ -167,7 +168,11 @@ def grover_algorithm_view():
         elif request.form['submit_button'] == 'Упражнения':
             path = filepath + 'GExercises.pdf'
             webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Calculate':
+        elif request.form['submit_button'] == 'Classical solution':
+            return redirect(
+                url_for('grover_classical_algorithm')
+            )
+        elif request.form['submit_button'] == 'Quantum solution':
             return redirect(
                 url_for('grover_algorithm')
             )
@@ -206,7 +211,7 @@ def simon_algorithm_view():
         elif request.form['submit_button'] == 'Упражнения':
             path = filepath + 'SAExercises.pdf'
             webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Calculate':
+        elif request.form['submit_button'] == 'Classical solution':
             return redirect(
                 url_for('simon_algorithm')
             )
@@ -214,8 +219,8 @@ def simon_algorithm_view():
         template_name_or_list="simon_algorithm.html"
     )
 
-
-@app.route('/algorithms/Bernstein_Vazirani_algorithm/cals', methods=['GET', 'POST'])
+# Bernstein Vazirani algorithm
+@app.route('/algorithms/Bernstein_Vazirani_algorithm/quantum_solution', methods=['GET', 'POST'])
 def bernstein_vazirani_algorithm():
     secret_number = '111000'
     num_qubits = len(secret_number) + 1
@@ -278,12 +283,94 @@ def bernstein_vazirani_algorithm():
     )
 
 
-@app.route('/algorithms/Grover_algorithm/cals', methods=['GET', 'POST'])
+# Grover algorithm
+@app.route('/algorithms/Grover_algorithm/quantum_solution', methods=['GET', 'POST'])
 def grover_algorithm():
-    pass
+    num_qubits=2
+    num_bits=2
+    circuit, quantum_register = create_circuit(
+        num_qubits=num_qubits,
+        num_bits=num_bits
+    )
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0,1]
+    )
+    # ORACLE
+    add_z_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0,1]  
+    )
+    # DIFUSSION OPERATOR
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0,1]
+    )
+    circuit.z(
+        [0,1]
+    )
+    add_z_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0,1]
+    )
+    add_hadamard_gate(
+        circuit=circuit,
+        quantum_register=quantum_register,
+        vector_register=[0,1]
+    )
+    # EXPORT CIRCUIT
+    draw(
+        circuit=circuit,
+        filename="grover_circuit"
+    )
+    # ANALYSIS
+    sv_sim = Aer.get_backend('statevector_simulator')
+    result = sv_sim.run(circuit).result()
+    state_vector = result.get_statevector()
+    result = array_to_latex(state_vector, prefix="|\\psi\\rangle =")
+
+    circuit.measure_all()
+    qasm_sim = Aer.get_backend('qasm_simulator')
+    result = qasm_sim.run(circuit).result()
+    counts = result.get_counts()
+    create_histogram(
+        counts=counts,
+        name="grover_algorithm_histogram"
+    )
+
+    return render_template(
+        template_name_or_list="grover_algorithm.html"
+    )
 
 
-@app.route('/algorithms/Quantum_Teleportation_Algorithm/cals', methods=['GET', 'POST'])
+@app.route('/algorithms/Grover_algorithm/classical_solution', methods=['GET'])
+def grover_classical_algorithm():
+    element_tofind = 7
+    my_list = [1,3,5,2,4,9,5,8,0,7,6]
+    def the_oracle(my_input):
+        if my_input is element_tofind:
+            response = True
+        else:
+            response = False
+        return response
+    
+    for index, trial_number in enumerate(my_list):
+        if the_oracle(trial_number):
+            print('Winner found at index:', index)
+            print('Calls to the Oracle used:', (index+1))
+            break
+
+    return render_template(
+        template_name_or_list="grover_algorithm.html"
+    )
+
+
+# Quantum Teleportation algorithm
+@app.route('/algorithms/Quantum_Teleportation_Algorithm/quantum_solution', methods=['GET', 'POST'])
 def quantum_teleportation_algorithm():
     num_qubits = 3 # LABEL para la interfaz grafica
     num_bits = 3
@@ -353,8 +440,8 @@ def quantum_teleportation_algorithm():
         template_name_or_list="quantumteleportation_algorithm.html"
     )
 
-
-@app.route('/algorithms/Simon_Algorithm/cals', methods=['GET', 'POST'])
+# Simon algorithm
+@app.route('/algorithms/Simon_Algorithm/quantum_solution', methods=['GET', 'POST'])
 def simon_algorithm():
     b = '110'
     n = len(b)
@@ -404,7 +491,6 @@ def bdotz(b, z):
 
 
 # Обработчики ошибок (ERRORS)
-
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('404.html'), 404
@@ -415,7 +501,7 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 
- # THREAD MAIN
+ # MAIN THREAD
 if __name__ == '__main__':
     app.run()
 
