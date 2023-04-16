@@ -9,48 +9,6 @@
         <section class="container my-5">
             <div class="row">
                 <h1>
-                    Квантовые ворота
-                </h1>
-                <div class="col-12 col-lg-7 my-5">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('bernsteinvazirani_algorithm_view') }}">
-                                Bell State
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('bernsteinvazirani_algorithm_view') }}">
-                                Hadamard Gate
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('grover_algorithm_view') }}">
-                                Poli X Gate
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('quantumteleportation_algorithm_view') }}">
-                                Z Gate
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-12 col-lg-5">
-                    <img
-                        class="img-fluid mx-auto d-block"
-                        src="{{ url_for('static', filename='img/illustration.png') }}"
-                        alt=""
-                    />
-                </div>
-            </div>
-            <div class="row">
-                <h1>
                     Квантовые алгоритмы
                 </h1>
                 <div class="col-12 col-lg-7 my-5">
@@ -72,6 +30,13 @@
                         <li class="nav-item pe-5">
                             <a class="nav-link" href="{{ url_for('quantumteleportation_algorithm_view') }}">
                                 Quantum Teleportation algorithm
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="nav nav-pills">
+                        <li class="nav-item pe-5">
+                            <a class="nav-link" href="{{ url_for('shor_algorithm_view') }}">
+                                Shor's algorithm
                             </a>
                         </li>
                     </ul>

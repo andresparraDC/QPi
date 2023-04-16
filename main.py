@@ -8,18 +8,25 @@ from wtforms import StringField, SubmitField, TextAreaField, URLField
 from wtforms.validators import DataRequired, Length, Optional
 import webbrowser
 import os
+import numpy as np
 
-from qiskit import Aer, execute
+from qiskit import Aer, execute, QuantumRegister, QuantumCircuit, ClassicalRegister, transpile
+from qiskit.circuit.library import QFT
+from qiskit.quantum_info import Statevector
 
 from qiskit_textbook.tools import simon_oracle
-from qiskit.visualization import array_to_latex
+from qiskit.visualization import array_to_latex, plot_bloch_multivector
+from IPython.display import display
+import matplotlib.pyplot as plot
+import warnings
+warnings.filterwarnings('ignore')
 
 from pauli_gate import add_x_gate, add_z_gate
 from hadamard_gate import add_hadamard_gate
 from cnot_gate import add_controlledX_gate
-from draw_circuit import draw
+from draw_circuit import draw, draw_sudoku_example
 from circuit import create_circuit
-from histogram import create_histogram
+from histogram import create_histogram, create_sudoku_histogram
 
 app = Flask(__name__)
 
@@ -35,6 +42,9 @@ app.config['SECRET_KEY'] = 'SECRET_KEY'
 # В ORM передаётся в качестве параметра экземпляр приложения Flask
 db = SQLAlchemy(app)
 
+
+FORMAT_TIME = '%Y-%m-%d-Time-%H-%M-%S' 
+NOW_TIME = datetime.strftime(datetime.now(), FORMAT_TIME) 
 
 # MODELS
 
@@ -176,6 +186,10 @@ def grover_algorithm_view():
             return redirect(
                 url_for('grover_algorithm')
             )
+        elif request.form['submit_button'] == 'Sudoku Quantum solution':
+            return redirect(
+                url_for('grover_sudoku_algorithm')
+            )
     return render_template(
         template_name_or_list='grover_algorithm.html'
     )
@@ -199,6 +213,19 @@ def quantumteleportation_algorithm_view():
     return render_template(
         template_name_or_list="quantumteleportation_algorithm.html"
     )
+
+
+@app.route('/algorithms/Shor_algorithm', methods=['GET', 'POST'])
+def shor_algorithm_view():
+    if request.method == 'POST':
+        if request.form['submit_button'] == 'QFT':
+            return redirect(
+                url_for('shor_algorithm_QFT')
+            )
+    return render_template(
+        template_name_or_list="shor_algorithm.html"
+    )
+
 
 @app.route('/algorithms/Simon_algorithm', methods=['GET', 'POST'])
 def simon_algorithm_view():
@@ -346,6 +373,166 @@ def grover_algorithm():
         template_name_or_list="grover_algorithm.html"
     )
 
+@app.route('/algorithms/Grover_algorithm/sudoku_solution', methods=['GET'])
+def grover_sudoku_algorithm():
+    clause_list = [ [0,1],
+               [0,2],
+               [1,3],
+               [2,3] ]
+    in_qubits = QuantumRegister(2, name='input')
+    out_qubit = QuantumRegister(1, name='output')
+    circuit = QuantumCircuit(in_qubits, out_qubit)
+    XOR(circuit, in_qubits[0], in_qubits[1], out_qubit)
+    draw_sudoku_example(
+        circuit=circuit,
+        filename="sudoku_circuit"
+    )
+
+    # Create separate registers to name bits
+    var_qubits = QuantumRegister(4, name='v')  # variable bits
+    clause_qubits = QuantumRegister(4, name='c')  # bits to store clause-checks
+    circuit_dos = QuantumCircuit(var_qubits, clause_qubits)
+    i = 0
+    for clause in clause_list:
+        XOR(circuit_dos, clause[0], clause[1], clause_qubits[i])
+        i += 1
+    draw_sudoku_example(
+        circuit=circuit_dos,
+        filename="sudoku_circuit"
+    )
+
+    # Create separate registers to name bits
+    var_qubits = QuantumRegister(4, name='v')
+    clause_qubits = QuantumRegister(4, name='c')
+    output_qubit = QuantumRegister(1, name='out')
+    circuit_tres = QuantumCircuit(var_qubits, clause_qubits, output_qubit)
+    # Compute clauses
+    i = 0
+    for clause in clause_list:
+        XOR(circuit_tres, clause[0], clause[1], clause_qubits[i])
+        i += 1
+    # Flip 'output' bit if all clauses are satisfied
+    # MCT - Multiple Control X Gate
+    circuit_tres.mct(clause_qubits, output_qubit)
+    draw_sudoku_example(
+        circuit=circuit_tres,
+        filename="sudoku_circuit"
+    )
+
+    # REPETING STATES WITHOUT COMPUTING
+    var_qubits = QuantumRegister(4, name='v')
+    clause_qubits = QuantumRegister(4, name='c')
+    output_qubit = QuantumRegister(1, name='out')
+    cbits = ClassicalRegister(4, name='cbits')
+    circuit_cuatro = QuantumCircuit(var_qubits, clause_qubits, output_qubit, cbits)
+    sudoku_oracle(
+        qc=circuit_cuatro,
+        clause_list=clause_list,
+        clause_qubits=clause_qubits,
+        output_qubit=output_qubit
+    )
+    draw_sudoku_example(
+        circuit=circuit_cuatro,
+        filename="sudoku_circuit"
+    )
+
+    # FINAL ALGORITHM
+    var_qubits = QuantumRegister(4, name='v')
+    clause_qubits = QuantumRegister(4, name='c')
+    output_qubit = QuantumRegister(1, name='out')
+    cbits = ClassicalRegister(4, name='cbits')
+    circuit_cinco = QuantumCircuit(var_qubits, clause_qubits, output_qubit, cbits)
+
+    # Initialize 'out0' in state |->
+    circuit_cinco.initialize([1, -1]/np.sqrt(2), output_qubit)
+
+    # Initialize qubits in state |s>
+    circuit_cinco.h(var_qubits)
+    circuit_cinco.barrier()  # for visual separation
+
+    ## First Iteration
+    # Apply our oracle
+    sudoku_oracle(circuit_cinco, clause_list, clause_qubits, output_qubit)
+    circuit_cinco.barrier()  # for visual separation
+    # Apply our diffuser
+    circuit_cinco.append(diffuser(4), [0,1,2,3])
+
+    ## Second Iteration
+    sudoku_oracle(circuit_cinco, clause_list, clause_qubits, output_qubit)
+    circuit_cinco.barrier()  # for visual separation
+    # Apply our diffuser
+    circuit_cinco.append(diffuser(4), [0,1,2,3])
+
+    # Measure the variable qubits
+    circuit_cinco.measure(var_qubits, cbits)
+
+    circuit_cinco.draw(fold=-1)
+    
+    draw_sudoku_example(
+        circuit=circuit_cinco,
+        filename="sudoku_circuit"
+    )
+
+    # Simulate and plot results
+    qasm_simulator = Aer.get_backend('qasm_simulator')
+    transpiled_qc = transpile(circuit_cinco, qasm_simulator)
+    result = qasm_simulator.run(transpiled_qc).result()
+    counts = result.get_counts()
+    create_sudoku_histogram(
+        counts=counts,
+        name="sudoku_histogram"
+    )
+
+    return render_template(
+        template_name_or_list="grover_algorithm.html"
+    )
+
+def XOR(qc, a, b, output):
+    qc.cx(a, output)
+    qc.cx(b, output)
+
+
+def sudoku_oracle(qc, clause_list, clause_qubits, output_qubit):
+    # Compute clauses
+    i = 0
+    for clause in clause_list:
+        XOR(qc, clause[0], clause[1], clause_qubits[i])
+        i += 1
+
+    # Flip 'output' bit if all clauses are satisfied
+    qc.mct(clause_qubits, output_qubit)
+
+    # Uncompute clauses to reset clause-checking bits to 0
+    i = 0
+    for clause in clause_list:
+        XOR(qc, clause[0], clause[1], clause_qubits[i])
+        i += 1
+
+def diffuser(nqubits):
+    circuit = QuantumCircuit(nqubits)
+    # Apply transformation |s> -> |00..0> (H-gates)
+    for qubit in range(nqubits):
+        circuit.h(qubit)
+    # Apply transformation |00..0> -> |11..1> (X-gates)
+    for qubit in range(nqubits):
+        circuit.x(qubit)
+    # Do multi-controlled-Z gate
+    circuit.h(nqubits-1)
+    circuit.mct(list(range(nqubits-1)), nqubits-1)  # multi-controlled-toffoli
+    circuit.h(nqubits-1)
+    # Apply transformation |11..1> -> |00..0>
+    for qubit in range(nqubits):
+        circuit.x(qubit)
+    # Apply transformation |00..0> -> |s>
+    for qubit in range(nqubits):
+        circuit.h(qubit)
+    # We will return the diffuser as a gate
+    U_s = circuit.to_gate()
+    U_s.name = "U$_s$"
+    return U_s
+
+
+
 
 @app.route('/algorithms/Grover_algorithm/classical_solution', methods=['GET'])
 def grover_classical_algorithm():
@@ -439,6 +626,41 @@ def quantum_teleportation_algorithm():
     return render_template(
         template_name_or_list="quantumteleportation_algorithm.html"
     )
+
+
+# Shor algorithm
+@app.route('/algorithms/Shor_Algorithm/quantum_solution', methods=['GET', 'POST'])
+def shor_algorithm_QFT():
+
+    state = '00'
+    
+    circuit = QuantumCircuit(len(state))
+    circuit.initialize(
+        Statevector.from_label(state).data,
+        circuit.qubits[::-1]
+    )
+    print(f'Computational bases |{state}>')
+    display(
+        plot_bloch_multivector(Statevector.from_instruction(circuit).data)
+    )
+    plot.savefig(
+        f'results/quantum_circuits/QFT_computational_bases_{NOW_TIME}.png'
+    )
+    print(f'Fourier bases |{state}>')
+    circuit.append(
+        QFT(len(state), do_swaps=True),
+        circuit.qubits
+    )
+    display(
+        plot_bloch_multivector(Statevector.from_instruction(circuit).data)
+    )
+    plot.savefig(
+        f'results/quantum_circuits/QFT_fourier_bases_{NOW_TIME}.png'
+    )
+    return render_template(
+        template_name_or_list="shor_algorithm.html"
+    )
+
 
 # Simon algorithm
 @app.route('/algorithms/Simon_Algorithm/quantum_solution', methods=['GET', 'POST'])
