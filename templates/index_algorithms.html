@@ -5,50 +5,50 @@
 {%endblock %} 
 
 {% block content %}
-    <main>
-        <section class="container my-5">
-            <div class="row">
-                <h1>
-                    Квантовые алгоритмы
-                </h1>
-                <div class="col-12 col-lg-7 my-5">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('bernsteinvazirani_algorithm_view') }}">
-                                Bernstein Vazirani algorithm
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('grover_algorithm_view') }}">
-                                Grover algorithm
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('quantumteleportation_algorithm_view') }}">
-                                Quantum Teleportation algorithm
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('shor_algorithm_view') }}">
-                                Shor's algorithm
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item pe-5">
-                            <a class="nav-link" href="{{ url_for('simon_algorithm_view') }}">
-                                Simon algorithm
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-    </main>
+  <main>
+    <section class="container my-5">
+      <div class="row">
+        <h1>
+          Квантовые алгоритмы
+        </h1>
+        <div class="col-12 col-lg-7 my-5">
+          <ul class="nav nav-pills">
+            <li class="nav-item pe-5">
+              <a class="nav-link" href="{{ url_for('bernstein_vazirani_algorithm_view') }}">
+                Bernstein Vazirani algorithm
+              </a>
+            </li>
+          </ul>
+          <ul class="nav nav-pills">
+            <li class="nav-item pe-5">
+              <a class="nav-link" href="{{ url_for('grover_algorithm_view') }}">
+                Grover's algorithm (A quantum search algorithm)
+              </a>
+            </li>
+          </ul>
+          <ul class="nav nav-pills">
+            <li class="nav-item pe-5">
+              <a class="nav-link" href="{{ url_for('quantum_teleportation_algorithm_view') }}">
+                Quantum Teleportation algorithm (Transmission of quantum information)
+              </a>
+            </li>
+          </ul>
+          <ul class="nav nav-pills">
+            <li class="nav-item pe-5">
+              <a class="nav-link" href="{{ url_for('shor_algorithm_view') }}">
+                Shor's algorithm
+              </a>
+            </li>
+          </ul>
+          <ul class="nav nav-pills">
+            <li class="nav-item pe-5">
+              <a class="nav-link" href="{{ url_for('simon_algorithm_view') }}">
+                Simon's algorithm
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
 {% endblock %}

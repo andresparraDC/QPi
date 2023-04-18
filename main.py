@@ -1,33 +1,36 @@
+import os
+import warnings
+import webbrowser
 from datetime import datetime
 from random import randrange
 
-from flask import Flask, render_template, redirect, url_for, abort, request
+import matplotlib.pyplot as plot
+import numpy as np
+from flask import Flask, abort, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, URLField
-from wtforms.validators import DataRequired, Length, Optional
-import webbrowser
-import os
-import numpy as np
-
-from qiskit import Aer, execute, QuantumRegister, QuantumCircuit, ClassicalRegister, transpile
+from IPython.display import display
+from qiskit import (Aer, ClassicalRegister, QuantumCircuit, QuantumRegister,
+                    execute, transpile)
 from qiskit.circuit.library import QFT
 from qiskit.quantum_info import Statevector
-
-from qiskit_textbook.tools import simon_oracle
 from qiskit.visualization import array_to_latex, plot_bloch_multivector
-from IPython.display import display
-import matplotlib.pyplot as plot
-import warnings
+from qiskit_textbook.tools import simon_oracle
+from wtforms import StringField, SubmitField, TextAreaField, URLField
+from wtforms.validators import DataRequired, Length, Optional
+
 warnings.filterwarnings('ignore')
 
-from pauli_gate import add_x_gate, add_z_gate
-from hadamard_gate import add_hadamard_gate
+from circuit import create_circuit
 from cnot_gate import add_controlledX_gate
 from draw_circuit import draw, draw_sudoku_example
-from circuit import create_circuit
+from hadamard_gate import add_hadamard_gate
 from histogram import create_histogram, create_sudoku_histogram
+from pauli_gate import add_x_gate, add_z_gate
 
+
+# CONFIGURATION APP
+# ___________________________________________________________________________
 app = Flask(__name__)
 
 # Подключается БД SQLite
@@ -42,22 +45,38 @@ app.config['SECRET_KEY'] = 'SECRET_KEY'
 # В ORM передаётся в качестве параметра экземпляр приложения Flask
 db = SQLAlchemy(app)
 
-
 FORMAT_TIME = '%Y-%m-%d-Time-%H-%M-%S' 
 NOW_TIME = datetime.strftime(datetime.now(), FORMAT_TIME) 
 
-# MODELS
 
+# MODELS
+# ___________________________________________________________________________
 class Opinion(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128), nullable=False)
-    text = db.Column(db.Text, unique=True, nullable=False)
-    source = db.Column(db.String(256))
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+    title = db.Column(
+        db.String(128),
+        nullable=False
+    )
+    text = db.Column(
+        db.Text,
+        unique=True,
+        nullable=False
+    )
+    source = db.Column(
+        db.String(256)
+    )
+    timestamp = db.Column(
+        db.DateTime,
+        index=True,
+        default=datetime.utcnow
+    )
 
 
 # FORMS
-
+# ___________________________________________________________________________
 class OpinionForm(FlaskForm):
     title = StringField(
         'Введите название алгоритма',
@@ -82,11 +101,8 @@ class OpinionForm(FlaskForm):
     submit = SubmitField('Добавить')
 
 
-class ButtonForm(FlaskForm):
-    submit = SubmitField('Watch')
-
-# FUNCTIONS
-
+# FUNCTIONS and VIEWS
+# ___________________________________________________________________________
 @app.route('/', methods=['GET'])
 def index_view():
     quantity = Opinion.query.count()
@@ -101,6 +117,14 @@ def index_view():
     return render_template(
         template_name_or_list='opinion.html',
         **context
+    )
+
+
+# VIEW FOR ALGORITHMS VIEW
+@app.route('/quantum_algorithms', methods=['GET'])
+def index_quantum_algorithms_view():
+    return render_template(
+        template_name_or_list='index_algorithms.html'
     )
 
 
@@ -138,17 +162,9 @@ def opinion_view(id):
         **context
     )
 
-# ALGORITHMS
 
-@app.route('/algorithms', methods=['GET'])
-def index_algorithms_view():
-    return render_template(
-        template_name_or_list='index_algorithms.html'
-    )
-
-
-@app.route('/algorithms/Bernstein_Vazirani_algorithm', methods=['GET', 'POST'])
-def bernsteinvazirani_algorithm_view():
+@app.route('/quantum_algorithms/Bernstein_Vazirani_algorithm', methods=['GET', 'POST'])
+def bernstein_vazirani_algorithm_view():
     if request.method == 'POST':
         workingdir = os.path.abspath(os.getcwd())
         filepath = workingdir + '/static/files/berstein_vazirani_algorithm'
@@ -158,7 +174,7 @@ def bernsteinvazirani_algorithm_view():
         elif request.form['submit_button'] == 'Упражнения':
             path = filepath + 'BVExercises.pdf'
             webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Calculate':
+        elif request.form['submit_button'] == 'Вычислять':
             return redirect(
                 url_for('bernstein_vazirani_algorithm')
             )
@@ -167,18 +183,10 @@ def bernsteinvazirani_algorithm_view():
     )
 
 
-@app.route('/algorithms/Grover_algorithm', methods=['GET', 'POST'])
+@app.route('/quantum_algorithms/Grover_algorithm', methods=['GET', 'POST'])
 def grover_algorithm_view():
     if request.method == 'POST':
-        workingdir = os.path.abspath(os.getcwd())
-        filepath = workingdir + '/static/files/grover_algorithm'
-        if request.form['submit_button'] == 'Презентация':
-            path = filepath + 'GPresentation.pdf'
-            webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Упражнения':
-            path = filepath + 'GExercises.pdf'
-            webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Classical solution':
+        if request.form['submit_button'] == 'Classical solution':
             return redirect(
                 url_for('grover_classical_algorithm')
             )
@@ -195,18 +203,10 @@ def grover_algorithm_view():
     )
 
 
-@app.route('/algorithms/Quantum_Teleportation_algorithm', methods=['GET', 'POST'])
-def quantumteleportation_algorithm_view():
+@app.route('/quantum_algorithms/Quantum_Teleportation_algorithm', methods=['GET', 'POST'])
+def quantum_teleportation_algorithm_view():
     if request.method == 'POST':
-        workingdir = os.path.abspath(os.getcwd())
-        filepath = workingdir + '/static/files/quantum_teleportation_algorithm'
-        if request.form['submit_button'] == 'Презентация':
-            path = filepath + 'QTPresentation.pdf'
-            webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Упражнения':
-            path = filepath + 'QTExercises.pdf'
-            webbrowser.open_new_tab(path)
-        elif request.form['submit_button'] == 'Calculate':
+        if request.form['submit_button'] == 'Вычислять':
             return redirect(
                 url_for('quantum_teleportation_algorithm')
             )
@@ -221,6 +221,10 @@ def shor_algorithm_view():
         if request.form['submit_button'] == 'QFT':
             return redirect(
                 url_for('shor_algorithm_QFT')
+            )
+        elif request.form['submit_button'] == 'Circuit - QFT':
+            return redirect(
+                url_for('shor_algorithm_quantum_circuit_QFT')
             )
     return render_template(
         template_name_or_list="shor_algorithm.html"
@@ -247,9 +251,13 @@ def simon_algorithm_view():
     )
 
 # Bernstein Vazirani algorithm
-@app.route('/algorithms/Bernstein_Vazirani_algorithm/quantum_solution', methods=['GET', 'POST'])
+@app.route('/quantum_algorithms/Bernstein_Vazirani_algorithm/quantum_solution', methods=['GET', 'POST'])
 def bernstein_vazirani_algorithm():
+    
+    # DATA
+    # INPUTS
     secret_number = '111000'
+    
     num_qubits = len(secret_number) + 1
     num_bits = len(secret_number)
     circuit, quantum_register = create_circuit(
@@ -311,7 +319,7 @@ def bernstein_vazirani_algorithm():
 
 
 # Grover algorithm
-@app.route('/algorithms/Grover_algorithm/quantum_solution', methods=['GET', 'POST'])
+@app.route('/quantum_algorithms/Grover_algorithm/quantum_solution', methods=['GET', 'POST'])
 def grover_algorithm():
     num_qubits=2
     num_bits=2
@@ -373,7 +381,8 @@ def grover_algorithm():
         template_name_or_list="grover_algorithm.html"
     )
 
-@app.route('/algorithms/Grover_algorithm/sudoku_solution', methods=['GET'])
+
+@app.route('/quantum_algorithms/Grover_algorithm/sudoku_solution', methods=['GET'])
 def grover_sudoku_algorithm():
     clause_list = [ [0,1],
                [0,2],
@@ -532,12 +541,12 @@ def diffuser(nqubits):
     return U_s
 
 
-
-
-@app.route('/algorithms/Grover_algorithm/classical_solution', methods=['GET'])
+@app.route('/quantum_algorithms/Grover_algorithm/classical_solution', methods=['GET'])
 def grover_classical_algorithm():
-    element_tofind = 7
-    my_list = [1,3,5,2,4,9,5,8,0,7,6]
+    # 7 is the last and 9 in the middle.
+    element_tofind = 9
+    my_list = [1,3,5,2,4,1,5,8,0,2,6,3,2,8,5,3,9,2,6,8,1,1,2,5,3,6,2,8,1,1,2,3,2,4,5,3,2,2,8,1,7,5]
+    print(f'Number of elements: {len(my_list)}')
     def the_oracle(my_input):
         if my_input is element_tofind:
             response = True
@@ -559,8 +568,12 @@ def grover_classical_algorithm():
 # Quantum Teleportation algorithm
 @app.route('/algorithms/Quantum_Teleportation_Algorithm/quantum_solution', methods=['GET', 'POST'])
 def quantum_teleportation_algorithm():
-    num_qubits = 3 # LABEL para la interfaz grafica
+    
+    # DATA
+    # INPUTS
+    num_qubits = 3
     num_bits = 3
+
     circuit, quantum_register = create_circuit(
         num_qubits=num_qubits,
         num_bits=num_bits
@@ -628,8 +641,8 @@ def quantum_teleportation_algorithm():
     )
 
 
-# Shor algorithm
-@app.route('/algorithms/Shor_Algorithm/quantum_solution', methods=['GET', 'POST'])
+# Shor algorithm (QFT)
+@app.route('/algorithms/Shor_Algorithm/QFT/quantum_solution', methods=['GET', 'POST'])
 def shor_algorithm_QFT():
 
     state = '00'
@@ -660,6 +673,35 @@ def shor_algorithm_QFT():
     return render_template(
         template_name_or_list="shor_algorithm.html"
     )
+
+
+# Shor algorithm (QFT)
+@app.route('/algorithms/Shor_Algorithm/Circuit_QFT/quantum_solution', methods=['GET', 'POST'])
+def shor_algorithm_quantum_circuit_QFT():
+    # Get value of PI
+    num_qubits=4
+    display(
+        QFT(num_qubits).draw()
+    )
+    plot.savefig(
+        f'results/quantum_circuits/Quantum_circuit_QFT_{NOW_TIME}.png'
+    )
+    return render_template(
+        template_name_or_list="shor_algorithm.html"
+    )
+
+# No reconoce la libreria cu1
+def my_qc_QFT(num_qubits):
+    pi = np.pi
+    circuit = QuantumCircuit(num_qubits)
+    for qubit in range(num_qubits):
+        circuit.h(qubit)
+        for otherqubit in range(qubit+1, num_qubits):
+            # https://qiskit.org/documentation/stable/0.24/stubs/qiskit.circuit.library.CU1Gate.html#qiskit.circuit.library.CU1Gate
+            circuit.cu1(
+                pi / (2**(otherqubit-qubit)), otherqubit, qubit
+            )
+    return circuit
 
 
 # Simon algorithm
